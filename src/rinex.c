@@ -645,11 +645,16 @@ static int decode_obsepoch(FILE *fp, char *buff, double ver, gtime_t *time,
     trace(4,"decode_obsepoch: ver=%.2f\n",ver);
     
     if (ver<=2.99) { /* ver.2 */
-        if ((n=(int)str2num(buff,29,3))<=0) return 0;
         
         /* epoch flag: 3:new site,4:header info,5:external event */
         *flag=(int)str2num(buff,28,1);
         
+        if (*flag == 5) {
+            str2time(buff,0,26,time);
+        }
+
+        if ((n=(int)str2num(buff,29,3))<=0) return 0;
+
         if (3<=*flag&&*flag<=5) return n;
         
         if (str2time(buff,0,26,time)) {
@@ -671,6 +676,9 @@ static int decode_obsepoch(FILE *fp, char *buff, double ver, gtime_t *time,
         if ((n=(int)str2num(buff,32,3))<=0) return 0;
         
         *flag=(int)str2num(buff,31,1);
+		if (*flag == 5) {
+            str2time(buff,1,28,time);
+        }
         
         if (3<=*flag&&*flag<=5) return n;
         
@@ -958,8 +966,12 @@ static int readrnxobsb(FILE *fp, const char *opt, double ver, int *tsys,
         
         /* decode obs epoch */
         if (i==0) {
-            if ((nsat=decode_obsepoch(fp,buff,ver,&time,flag,sats))<=0) {
+            if ((nsat=decode_obsepoch(fp,buff,ver,&time,flag,sats))<=0 && (*flag != 5)) {
                 continue;
+            }
+            if (*flag == 5) {
+                data[0].eventime = time;
+                return 0;
             }
         }
         else if (*flag<=2||*flag==6) {
@@ -984,6 +996,7 @@ static int readrnxobs(FILE *fp, gtime_t ts, gtime_t te, double tint,
                       const char *opt, int rcv, double ver, int *tsys,
                       char tobs[][MAXOBSTYPE][4], obs_t *obs, sta_t *sta)
 {
+	gtime_t eventime={0};
     obsd_t *data;
     unsigned char slips[MAXSAT][NFREQ]={{0}};
     int i,n,flag=0,stat=0;
@@ -996,7 +1009,17 @@ static int readrnxobs(FILE *fp, gtime_t ts, gtime_t te, double tint,
     
     /* read rinex obs data body */
     while ((n=readrnxobsb(fp,opt,ver,tsys,tobs,&flag,data,sta))>=0&&stat>=0) {
+	
+	if (flag == 5) {
+            eventime = data[0].eventime;
+            n = readrnxobsb(fp,opt,ver,tsys,tobs,&flag,data, sta);
+    }
         
+        for (i=0;i<n;i++) data[i].eventime = eventime;
+        /* set to zero eventime for the next iteration */
+        eventime.time = 0;
+        eventime.sec = 0;
+
         for (i=0;i<n;i++) {
             
             /* utc -> gpst */
@@ -2040,6 +2063,27 @@ static int obsindex(double ver, int sys, const unsigned char *code,
     }
     return -1;
 }
+/* output rinex event time ---------------------------------------------------*/
+static void outrinexevent(FILE *fp, const rnxopt_t *opt, const obsd_t *obs,
+                          const double epdiff)
+{
+    int n;
+    double epe[6];
+
+    time2epoch(obs[0].eventime,epe);
+    n = obs->timevalid ? 0 : 1;
+
+    if (opt->rnxver<=2.99) { /* ver.2 */
+        if (epdiff < 0) fprintf(fp,"\n");
+        fprintf(fp," %02d %2.0f %2.0f %2.0f %2.0f%11.7f  %d%3d",
+                (int)epe[0]%100,epe[1],epe[2],epe[3],epe[4],epe[5],5,n);
+        if (epdiff >= 0) fprintf(fp,"\n");
+    } else { /* ver.3 */
+        fprintf(fp,"> %04.0f %2.0f %2.0f %2.0f %2.0f%11.7f  %d%3d\n",
+                epe[0],epe[1],epe[2],epe[3],epe[4],epe[5],5,n);
+    }
+    if (n) fprintf(fp,"%-60.60s%-20s\n"," Time mark is not valid","COMMENT");
+}
 /* output rinex obs body -------------------------------------------------------
 * output rinex obs body
 * args   : FILE   *fp       I   output file pointer
@@ -2053,7 +2097,7 @@ extern int outrnxobsb(FILE *fp, const rnxopt_t *opt, const obsd_t *obs, int n,
                       int flag)
 {
     const char *mask;
-    double ep[6];
+    double epdiff,ep[6];
     char sats[MAXOBS][4]={""};
     int i,j,k,m,ns,sys,ind[MAXOBS],s[MAXOBS]={0};
     
@@ -2077,6 +2121,14 @@ extern int outrnxobsb(FILE *fp, const rnxopt_t *opt, const obsd_t *obs, int n,
         if (!opt->nobs[opt->rnxver<=2.99?0:s[ns]]) continue;
         ind[ns++]=i;
     }
+
+    /* if epoch of event less than epoch of observation, then first output
+    time mark, else first output observation record */
+    epdiff = timediff(obs[0].time,obs[0].eventime);
+    if (flag == 5 && epdiff >= 0) {
+        outrinexevent(fp, opt, obs, epdiff);
+    }
+
     if (opt->rnxver<=2.99) { /* ver.2 */
         fprintf(fp," %02d %2.0f %2.0f %2.0f %2.0f%11.7f  %d%3d",
                 (int)ep[0]%100,ep[1],ep[2],ep[3],ep[4],ep[5],flag,ns);
@@ -2123,6 +2175,11 @@ extern int outrnxobsb(FILE *fp, const rnxopt_t *opt, const obsd_t *obs, int n,
         }
         if (opt->rnxver>2.99&&fprintf(fp,"\n")==EOF) return 0;
     }
+
+    if (flag == 5 && epdiff < 0) {
+        outrinexevent(fp, opt, obs, epdiff);
+    }
+
     if (opt->rnxver>2.99) return 1;
     
     return fprintf(fp,"\n")!=EOF;

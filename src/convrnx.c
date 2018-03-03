@@ -998,7 +998,11 @@ static void convobs(FILE **ofp, rnxopt_t *opt, strfile_t *str, int *staid,
         }
     }
     /* output rinex obs */
-    outrnxobsb(ofp[0],opt,str->obs->data,str->obs->n,0);
+	outrnxobsb(ofp[0],opt,str->obs->data,str->obs->n,str->obs->flag);
+    /* n[10] - count of events converted to rinex */
+    if (str->obs->flag == 5) n[10]++;
+ 	/* set to zero flag for the next iteration (initialization) */
+ 	str->obs->flag = 0;
     
     if (opt->tstart.time==0) opt->tstart=time;
     opt->tend=time;
