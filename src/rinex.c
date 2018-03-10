@@ -2131,7 +2131,7 @@ extern int outrnxobsb(FILE *fp, const rnxopt_t *opt, const obsd_t *obs, int n,
 
     if (opt->rnxver<=2.99) { /* ver.2 */
         fprintf(fp," %02d %2.0f %2.0f %2.0f %2.0f%11.7f  %d%3d",
-                (int)ep[0]%100,ep[1],ep[2],ep[3],ep[4],ep[5],flag,ns);
+                (int)ep[0]%100,ep[1],ep[2],ep[3],ep[4],ep[5],0,ns);
         for (i=0;i<ns;i++) {
             if (i>0&&i%12==0) fprintf(fp,"\n%32s","");
             fprintf(fp,"%-3s",sats[i]);
@@ -2139,7 +2139,7 @@ extern int outrnxobsb(FILE *fp, const rnxopt_t *opt, const obsd_t *obs, int n,
     }
     else { /* ver.3 */
         fprintf(fp,"> %04.0f %2.0f %2.0f %2.0f %2.0f%11.7f  %d%3d%21s\n",
-                ep[0],ep[1],ep[2],ep[3],ep[4],ep[5],flag,ns,"");
+                ep[0],ep[1],ep[2],ep[3],ep[4],ep[5],0,ns,"");
     }
     for (i=0;i<ns;i++) {
         sys=satsys(obs[ind[i]].sat,NULL);
