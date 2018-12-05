@@ -349,7 +349,7 @@ static int estpos(const obsd_t *obs, int n, const double *rs, const double *dts,
             sol->dtr[1]=x[4]/CLIGHT; /* glo-gps time offset (s) */
             sol->dtr[2]=x[5]/CLIGHT; /* gal-gps time offset (s) */
             sol->dtr[3]=x[6]/CLIGHT; /* bds-gps time offset (s) */
-            for (j=0;j<6;j++) sol->rr[j]=j<3?x[j]:0.0;
+            for (j=0;j<9;j++) sol->rr[j]=j<3?x[j]:0.0;
             for (j=0;j<3;j++) sol->qr[j]=(float)Q[j+j*NX];
             sol->qr[3]=(float)Q[1];    /* cov xy */
             sol->qr[4]=(float)Q[2+NX]; /* cov yz */

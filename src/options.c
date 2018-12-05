@@ -118,6 +118,7 @@ EXPORT opt_t sysopts[]={
     {"out-outhead",     3,  (void *)&solopt_.outhead,    SWTOPT },
     {"out-outopt",      3,  (void *)&solopt_.outopt,     SWTOPT },
     {"out-outvel",      3,  (void *)&solopt_.outvel,     SWTOPT },
+	{"out-outacc",      3,  (void *)&solopt_.outacc,     SWTOPT },
     {"out-timesys",     3,  (void *)&solopt_.times,      TSYOPT },
     {"out-timeform",    3,  (void *)&solopt_.timef,      TFTOPT },
     {"out-timendec",    0,  (void *)&solopt_.timeu,      ""     },

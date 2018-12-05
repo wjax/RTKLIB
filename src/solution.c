@@ -143,6 +143,26 @@ static void covtosol_vel(const double *P, sol_t *sol)
     sol->qv[4]=(float)P[5]; /* yz */
     sol->qv[5]=(float)P[2]; /* zx */
 }
+/* solution to velocity covariance -------------------------------------------*/
+static void soltocov_acc(const sol_t *sol, double *P)
+{
+	P[0] = sol->qa[0]; /* xx */
+	P[4] = sol->qa[1]; /* yy */
+	P[8] = sol->qa[2]; /* zz */
+	P[1] = P[3] = sol->qa[3]; /* xy */
+	P[5] = P[7] = sol->qa[4]; /* yz */
+	P[2] = P[6] = sol->qa[5]; /* zx */
+}
+/* velocity covariance to solution -------------------------------------------*/
+static void covtosol_acc(const double *P, sol_t *sol)
+{
+	sol->qa[0] = (float)P[0]; /* xx */
+	sol->qa[1] = (float)P[4]; /* yy */
+	sol->qa[2] = (float)P[8]; /* zz */
+	sol->qa[3] = (float)P[1]; /* xy */
+	sol->qa[4] = (float)P[5]; /* yz */
+	sol->qa[5] = (float)P[2]; /* zx */
+}
 /* decode nmea gxrmc: recommended minumum data for gps -----------------------*/
 static int decode_nmearmc(char **val, int n, sol_t *sol)
 {
@@ -1120,6 +1140,16 @@ static int outecef(unsigned char *buff, const char *s, const sol_t *sol,
                    sep,sqvar(sol->qv[3]),sep,sqvar(sol->qv[4]),sep,
                    sqvar(sol->qv[5]));
     }
+
+	if (opt->outacc) { /* output acceleration */
+		p += sprintf(p, "%s%10.5f%s%10.5f%s%10.5f%s%9.5f%s%8.5f%s%8.5f%s%8.5f%s%8.5f%s%8.5f",
+			sep, sol->rr[6], sep, sol->rr[7], sep, sol->rr[8], sep,
+			SQRT(sol->qa[0]), sep, SQRT(sol->qa[1]), sep, SQRT(sol->qa[2]),
+			sep, sqvar(sol->qa[3]), sep, sqvar(sol->qa[4]), sep,
+			sqvar(sol->qa[5]));
+	}
+
+
     p+=sprintf(p,"\n");
     return p-(char *)buff;
 }
@@ -1127,7 +1157,7 @@ static int outecef(unsigned char *buff, const char *s, const sol_t *sol,
 static int outpos(unsigned char *buff, const char *s, const sol_t *sol,
                   const solopt_t *opt)
 {
-    double pos[3],vel[3],dms1[3],dms2[3],P[9],Q[9];
+    double pos[3],vel[3],acc[3],dms1[3],dms2[3],P[9],Q[9];
     const char *sep=opt2sep(opt);
     char *p=(char *)buff;
     
@@ -1163,6 +1193,16 @@ static int outpos(unsigned char *buff, const char *s, const sol_t *sol,
                    SQRT(Q[0]),sep,SQRT(Q[8]),sep,sqvar(Q[1]),sep,sqvar(Q[2]),
                    sep,sqvar(Q[5]));
     }
+
+	if (opt->outacc) { /* output acceleration */
+		soltocov_acc(sol, P);
+		ecef2enu(pos, sol->rr + 6, acc);
+		covenu(pos, P, Q);
+		p += sprintf(p, "%s%10.5f%s%10.5f%s%10.5f%s%9.5f%s%8.5f%s%8.5f%s%8.5f%s%8.5f%s%8.5f",
+			sep, acc[1], sep, acc[0], sep, acc[2], sep, SQRT(Q[4]), sep,
+			SQRT(Q[0]), sep, SQRT(Q[8]), sep, sqvar(Q[1]), sep, sqvar(Q[2]),
+			sep, sqvar(Q[5]));
+	}
     p+=sprintf(p,"\n");
     return p-(char *)buff;
 }
@@ -1551,6 +1591,11 @@ extern int outsolheads(unsigned char *buff, const solopt_t *opt)
                        sep,"vn(m/s)",sep,"ve(m/s)",sep,"vu(m/s)",sep,"sdvn",sep,
                        "sdve",sep,"sdvu",sep,"sdvne",sep,"sdveu",sep,"sdvun");
         }
+		if (opt->outacc) {
+			p += sprintf(p, "%s%10s%s%10s%s%10s%s%9s%s%8s%s%8s%s%8s%s%8s%s%8s",
+				sep, "an(m2/s2)", sep, "ae(m2/s2)", sep, "au(m2/s2)", sep, "sdan", sep,
+				"sdae", sep, "sdau", sep, "sdane", sep, "sdaeu", sep, "sdaun");
+		}
     }
     else if (opt->posf==SOLF_XYZ) { /* x/y/z-ecef */
         p+=sprintf(p,"%14s%s%14s%s%14s%s%3s%s%3s%s%8s%s%8s%s%8s%s%8s%s%8s%s%8s%s%6s%s%6s",
@@ -1563,6 +1608,11 @@ extern int outsolheads(unsigned char *buff, const solopt_t *opt)
                        sep,"vx(m/s)",sep,"vy(m/s)",sep,"vz(m/s)",sep,"sdvx",sep,
                        "sdvy",sep,"sdvz",sep,"sdvxy",sep,"sdvyz",sep,"sdvzx");
         }
+		if (opt->outacc) {
+			p += sprintf(p, "%s%10s%s%10s%s%10s%s%9s%s%8s%s%8s%s%8s%s%8s%s%8s",
+				sep, "ax(m2/s2)", sep, "ay(m2/s2)", sep, "az(m2/s2)", sep, "sdax", sep,
+				"sday", sep, "sdaz", sep, "sdaxy", sep, "sdayz", sep, "sdazx");
+		}
     }
     else if (opt->posf==SOLF_ENU) { /* e/n/u-baseline */
         p+=sprintf(p,"%14s%s%14s%s%14s%s%3s%s%3s%s%8s%s%8s%s%8s%s%8s%s%8s%s%8s%s%6s%s%6s",

@@ -931,12 +931,13 @@ typedef struct {        /* station parameter type */
 
 typedef struct {        /* solution type */
     gtime_t time;       /* time (GPST) */
-    double rr[6];       /* position/velocity (m|m/s) */
-                        /* {x,y,z,vx,vy,vz} or {e,n,u,ve,vn,vu} */
+    double rr[9];       /* position/velocity/acceleration (m|m/s|m2/s) */
+                        /* {x,y,z,vx,vy,vz,ax,ay,az} or {e,n,u,ve,vn,vu,ae,an,az} */
     float  qr[6];       /* position variance/covariance (m^2) */
                         /* {c_xx,c_yy,c_zz,c_xy,c_yz,c_zx} or */
                         /* {c_ee,c_nn,c_uu,c_en,c_nu,c_ue} */
     float  qv[6];       /* velocity variance/covariance (m^2/s^2) */
+	float  qa[6];       /* acceleration variance/covariance (m^3/s^3) */
     double dtr[6];      /* receiver clock bias to time systems (s) */
     unsigned char type; /* type (0:xyz-ecef,1:enu-baseline) */
     unsigned char stat; /* solution status (SOLQ_???) */
@@ -1130,6 +1131,7 @@ typedef struct {        /* solution options type */
     int outhead;        /* output header (0:no,1:yes) */
     int outopt;         /* output processing options (0:no,1:yes) */
     int outvel;         /* output velocity options (0:no,1:yes) */
+	int outacc;         /* output acceleration options (0:no,1:yes) */
     int datum;          /* datum (0:WGS84,1:Tokyo) */
     int height;         /* height (0:ellipsoidal,1:geodetic) */
     int geoid;          /* geoid model (0:EGM96,1:JGD2000) */

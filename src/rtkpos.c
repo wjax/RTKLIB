@@ -2076,13 +2076,20 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,
         rtk->sol.qr[5]=(float)rtk->Pa[2];
         
         if (rtk->opt.dynamics) { /* velocity and covariance */
-            for (i=3;i<6;i++) {
+            for (i=3;i<9;i++)
                 rtk->sol.rr[i]=rtk->xa[i];
-                rtk->sol.qv[i-3]=(float)rtk->Pa[i+i*rtk->na];
-    }
+			for (i = 3; i < 6; i++)
+				rtk->sol.qv[i - 3] = (float)rtk->Pa[i + i * rtk->na];
+			for (i = 6; i < 9; i++)
+				rtk->sol.qa[i - 6] = (float)rtk->Pa[i + i * rtk->na];
+
             rtk->sol.qv[3]=(float)rtk->Pa[4+3*rtk->na];
             rtk->sol.qv[4]=(float)rtk->Pa[5+4*rtk->na];
             rtk->sol.qv[5]=(float)rtk->Pa[5+3*rtk->na];
+
+			rtk->sol.qa[3] = (float)rtk->Pa[7 + 6 * rtk->na];
+			rtk->sol.qa[4] = (float)rtk->Pa[8 + 7 * rtk->na];
+			rtk->sol.qa[5] = (float)rtk->Pa[8 + 6 * rtk->na];
         }
     }
     else {  /* float solution */
@@ -2095,13 +2102,20 @@ static int relpos(rtk_t *rtk, const obsd_t *obs, int nu, int nr,
         rtk->sol.qr[5]=(float)rtk->P[2];
         
         if (rtk->opt.dynamics) { /* velocity and covariance */
-            for (i=3;i<6;i++) {
+            for (i=3;i<9;i++) 
                 rtk->sol.rr[i]=rtk->x[i];
-                rtk->sol.qv[i-3]=(float)rtk->P[i+i*rtk->nx];
-            }
+			for (i = 3; i < 6; i++)
+				rtk->sol.qv[i - 3] = (float)rtk->P[i + i * rtk->nx];
+			for (i = 6; i < 9; i++)
+				rtk->sol.qa[i - 6] = (float)rtk->P[i + i * rtk->nx];
+
             rtk->sol.qv[3]=(float)rtk->P[4+3*rtk->nx];
             rtk->sol.qv[4]=(float)rtk->P[5+4*rtk->nx];
             rtk->sol.qv[5]=(float)rtk->P[5+3*rtk->nx];
+
+			rtk->sol.qa[3] = (float)rtk->P[7 + 6 * rtk->nx];
+			rtk->sol.qa[4] = (float)rtk->P[8 + 7 * rtk->nx];
+			rtk->sol.qa[5] = (float)rtk->P[8 + 6 * rtk->nx];
         }
         rtk->nfix=0;
     }
